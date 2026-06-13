@@ -24,7 +24,7 @@ export default async function RootLayout({
   if (!isLocale(locale)) notFound();
 
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning translate="no">
       <body>
         <Providers>{children}</Providers>
       </body>
