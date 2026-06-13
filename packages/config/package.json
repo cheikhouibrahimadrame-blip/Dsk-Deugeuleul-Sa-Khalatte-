@@ -1,0 +1,10 @@
+{
+  "name": "@dsk/config",
+  "version": "0.1.0",
+  "private": true,
+  "files": [
+    "tsconfig.base.json",
+    "tsconfig.nextjs.json",
+    "tsconfig.node.json"
+  ]
+}

@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dsk-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dsk
+      POSTGRES_PASSWORD: dsk_dev_password
+      POSTGRES_DB: dsk
+    ports:
+      - "5432:5432"
+    volumes:
+      - dsk_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dsk -d dsk"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: dsk-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - dsk_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  dsk_pgdata:
+  dsk_redisdata:

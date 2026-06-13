@@ -1,0 +1,57 @@
+# ---------------------------------------------------------------------------
+# DSK CI pipeline
+# quality (typecheck) -> test (hermetic unit tests) -> build
+# Runs on merge requests and the default branch.
+# ---------------------------------------------------------------------------
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+stages:
+  - quality
+  - test
+  - build
+
+default:
+  image: node:20
+  before_script:
+    - corepack enable
+    - corepack prepare pnpm@9.15.0 --activate
+    - pnpm config set store-dir .pnpm-store
+    - pnpm install --no-frozen-lockfile
+  cache:
+    key:
+      files:
+        - pnpm-workspace.yaml
+    paths:
+      - .pnpm-store
+
+typecheck:
+  stage: quality
+  variables:
+    DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+  script:
+    - pnpm db:generate
+    - pnpm typecheck
+
+unit-tests:
+  stage: test
+  variables:
+    # Hermetic test-only secrets - never real values.
+    NEXTAUTH_SECRET: "ci-test-secret"
+    TOKEN_ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+  script:
+    - pnpm test
+
+build:
+  stage: build
+  variables:
+    DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+    NEXTAUTH_URL: "http://localhost:3000"
+    NEXTAUTH_SECRET: "ci-test-secret"
+    TOKEN_ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+  script:
+    - pnpm db:generate
+    - pnpm build

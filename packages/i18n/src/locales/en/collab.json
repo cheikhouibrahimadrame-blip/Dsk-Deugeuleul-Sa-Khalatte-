@@ -1,0 +1,21 @@
+{
+  "modal.title": "Work together on this idea",
+  "modal.message": "Why do you want to collaborate?",
+  "modal.skills": "Skills you bring (comma-separated)",
+  "modal.submit": "Send request",
+  "modal.success": "Request sent! The idea owner will review it.",
+  "modal.alreadyRequested": "You already sent a request for this idea.",
+  "inbox.title": "Collaboration inbox",
+  "inbox.received": "Received",
+  "inbox.sent": "Sent",
+  "inbox.empty": "No collaboration requests yet.",
+  "action.accept": "Accept",
+  "action.reject": "Reject",
+  "action.save": "Save for later",
+  "status.PENDING": "Pending",
+  "status.ACCEPTED": "Accepted",
+  "status.REJECTED": "Rejected",
+  "status.SAVED": "Saved",
+  "status.WITHDRAWN": "Withdrawn",
+  "error.groupFull": "This group already has the maximum of 10 members."
+}

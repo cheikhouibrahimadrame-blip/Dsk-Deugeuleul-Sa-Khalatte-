@@ -1,0 +1,8 @@
+{
+  "verify.subject": "Confirmez votre compte DSK",
+  "verify.body": "Bonjour {name}, confirmez votre adresse e-mail en cliquant sur ce lien : {url}",
+  "reset.subject": "Réinitialisez votre mot de passe DSK",
+  "reset.body": "Bonjour {name}, réinitialisez votre mot de passe via ce lien : {url}. Le lien expire dans {minutes} minutes.",
+  "collabAccepted.subject": "Votre demande de collaboration a été acceptée",
+  "collabAccepted.body": "Bonne nouvelle {name} : votre demande pour rejoindre « {ideaTitle} » a été acceptée. Votre groupe est prêt : {url}"
+}

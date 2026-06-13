@@ -1,0 +1,18 @@
+{
+  "title": "Admin panel",
+  "nav.moderation": "Moderation",
+  "nav.reports": "Reports queue",
+  "nav.users": "Users",
+  "nav.content": "Ideas & comments",
+  "nav.groups": "Groups oversight",
+  "nav.organizations": "Organization verification",
+  "nav.integrations": "Integration health",
+  "nav.auditLogs": "Audit logs",
+  "nav.featureFlags": "Feature flags",
+  "action.ban": "Ban user",
+  "action.unban": "Unban user",
+  "action.hide": "Hide content",
+  "action.restore": "Restore content",
+  "action.resolve": "Resolve",
+  "action.dismiss": "Dismiss"
+}

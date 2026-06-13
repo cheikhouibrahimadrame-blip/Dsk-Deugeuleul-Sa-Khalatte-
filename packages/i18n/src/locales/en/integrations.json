@@ -1,0 +1,18 @@
+{
+  "title": "Integrations",
+  "connect": "Connect",
+  "disconnect": "Disconnect",
+  "reconnect": "Reconnect",
+  "status.CONNECTED": "Connected",
+  "status.EXPIRED": "Expired - reconnect required",
+  "status.REVOKED": "Access revoked",
+  "status.ERROR": "Connection error",
+  "provider.META_FACEBOOK_PAGE": "Facebook Page",
+  "provider.META_INSTAGRAM_PROFESSIONAL": "Instagram professional account",
+  "provider.META_WHATSAPP_BUSINESS": "WhatsApp Business",
+  "provider.TIKTOK": "TikTok",
+  "publish.title": "Share to social",
+  "publish.queued": "Queued for publishing",
+  "publish.published": "Published",
+  "publish.failed": "Publishing failed"
+}

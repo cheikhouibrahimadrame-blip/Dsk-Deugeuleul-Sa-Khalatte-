@@ -1,0 +1,16 @@
+{
+  "feed.title": "Découvrir les idées",
+  "feed.empty": "Pas encore d'idées. Soyez le premier à en partager une.",
+  "create.title": "Partagez votre idée",
+  "create.fieldTitle": "Titre",
+  "create.fieldDescription": "Décrivez votre idée",
+  "create.publish": "Publier",
+  "create.saveDraft": "Enregistrer le brouillon",
+  "detail.comments": "Retours anonymes",
+  "detail.workTogether": "Travailler ensemble",
+  "comment.placeholder": "Donnez un retour honnête et anonyme...",
+  "comment.submit": "Publier anonymement",
+  "comment.helpful": "Utile",
+  "comment.unhelpful": "Inutile",
+  "comment.report": "Signaler"
+}

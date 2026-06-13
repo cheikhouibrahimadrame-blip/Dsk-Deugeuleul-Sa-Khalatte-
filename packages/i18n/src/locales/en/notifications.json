@@ -1,0 +1,14 @@
+{
+  "title": "Notifications",
+  "empty": "You're all caught up.",
+  "markAllRead": "Mark all as read",
+  "type.COLLAB_REQUEST_RECEIVED": "New collaboration request on \"{ideaTitle}\"",
+  "type.COLLAB_REQUEST_ACCEPTED": "Your request on \"{ideaTitle}\" was accepted",
+  "type.COLLAB_REQUEST_REJECTED": "Your request on \"{ideaTitle}\" was declined",
+  "type.GROUP_MEMBER_JOINED": "A new member joined your group",
+  "type.GROUP_MESSAGE": "New message in your group",
+  "type.COMMENT_ON_IDEA": "New anonymous feedback on your idea",
+  "type.REPORT_RESOLVED": "Your report was reviewed",
+  "type.OPPORTUNITY_MATCH": "An opportunity matches your profile",
+  "type.SYSTEM": "System notification"
+}

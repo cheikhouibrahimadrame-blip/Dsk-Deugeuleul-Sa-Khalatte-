@@ -1,0 +1,25 @@
+{
+  "name": "dsk",
+  "private": true,
+  "description": "DSK - Degeuleule Sa Khalatte: idea validation, anonymous feedback, collaboration matching, and private project groups.",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "vitest run",
+    "db:generate": "pnpm --filter @dsk/db generate",
+    "db:migrate": "pnpm --filter @dsk/db migrate:dev",
+    "db:push": "pnpm --filter @dsk/db push",
+    "db:seed": "pnpm --filter @dsk/db seed"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}

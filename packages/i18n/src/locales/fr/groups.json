@@ -1,0 +1,14 @@
+{
+  "list.title": "Vos groupes",
+  "list.empty": "Vous n'êtes dans aucun groupe pour le moment. Acceptez ou envoyez une demande de collaboration pour en créer un.",
+  "detail.members": "Membres",
+  "detail.maxMembers": "Les groupes sont limités à {max} membres.",
+  "detail.full": "Ce groupe est complet ({max}/{max}).",
+  "chat.placeholder": "Écrivez un message...",
+  "chat.send": "Envoyer",
+  "chat.typing": "{names} est en train d'écrire...",
+  "chat.pinned": "Épinglé",
+  "chat.live": "En direct",
+  "member.leave": "Quitter le groupe",
+  "member.remove": "Retirer le membre"
+}

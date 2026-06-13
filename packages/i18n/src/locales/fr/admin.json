@@ -1,0 +1,18 @@
+{
+  "title": "Panneau d'administration",
+  "nav.moderation": "Modération",
+  "nav.reports": "File des signalements",
+  "nav.users": "Utilisateurs",
+  "nav.content": "Idées et commentaires",
+  "nav.groups": "Supervision des groupes",
+  "nav.organizations": "Vérification des organisations",
+  "nav.integrations": "Santé des intégrations",
+  "nav.auditLogs": "Journaux d'audit",
+  "nav.featureFlags": "Drapeaux de fonctionnalités",
+  "action.ban": "Bannir l'utilisateur",
+  "action.unban": "Réintégrer l'utilisateur",
+  "action.hide": "Masquer le contenu",
+  "action.restore": "Restaurer le contenu",
+  "action.resolve": "Résoudre",
+  "action.dismiss": "Rejeter"
+}

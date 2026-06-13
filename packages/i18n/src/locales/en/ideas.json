@@ -1,0 +1,16 @@
+{
+  "feed.title": "Discover ideas",
+  "feed.empty": "No ideas yet. Be the first to share one.",
+  "create.title": "Share your idea",
+  "create.fieldTitle": "Title",
+  "create.fieldDescription": "Describe your idea",
+  "create.publish": "Publish",
+  "create.saveDraft": "Save as draft",
+  "detail.comments": "Anonymous feedback",
+  "detail.workTogether": "Work Together",
+  "comment.placeholder": "Give honest, anonymous feedback...",
+  "comment.submit": "Post anonymously",
+  "comment.helpful": "Helpful",
+  "comment.unhelpful": "Unhelpful",
+  "comment.report": "Report"
+}

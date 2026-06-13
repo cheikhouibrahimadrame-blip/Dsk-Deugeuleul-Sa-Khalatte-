@@ -1,0 +1,21 @@
+{
+  "modal.title": "Travailler ensemble sur cette idée",
+  "modal.message": "Pourquoi voulez-vous collaborer ?",
+  "modal.skills": "Compétences que vous apportez (séparées par des virgules)",
+  "modal.submit": "Envoyer la demande",
+  "modal.success": "Demande envoyée ! Le porteur de l'idée va l'examiner.",
+  "modal.alreadyRequested": "Vous avez déjà envoyé une demande pour cette idée.",
+  "inbox.title": "Demandes de collaboration",
+  "inbox.received": "Reçues",
+  "inbox.sent": "Envoyées",
+  "inbox.empty": "Aucune demande de collaboration pour le moment.",
+  "action.accept": "Accepter",
+  "action.reject": "Refuser",
+  "action.save": "Garder pour plus tard",
+  "status.PENDING": "En attente",
+  "status.ACCEPTED": "Acceptée",
+  "status.REJECTED": "Refusée",
+  "status.SAVED": "Sauvegardée",
+  "status.WITHDRAWN": "Retirée",
+  "error.groupFull": "Ce groupe a déjà atteint le maximum de 10 membres."
+}
