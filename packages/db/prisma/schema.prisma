@@ -24,6 +24,11 @@ model User {
   lastSeenAt        DateTime? // For online status
   isOnline          Boolean   @default(false)
   
+  // AI Matching Fields
+  interests         String[]  @default([])
+  skills            String[]  @default([])
+  embedding         Json?     // Vector embedding for similarity search
+  
   // Relationships
   goals             Goal[]
   memberships       Membership[]
@@ -31,8 +36,12 @@ model User {
   messages          Message[]
   notifications     Notification[]
   sentMessages      Message[] @relation("MessageSender")
+  matchScores       MatchScore[] @relation("UserOne")
+  matchScoresTwo    MatchScore[] @relation("UserTwo")
   
   @@index([email])
+  @@index([interests])
+  @@index([skills])
 }
 
 model Goal {
@@ -46,12 +55,17 @@ model Goal {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
+  // AI Matching Fields
+  embedding     Json?    // Vector embedding for similarity search
+  matchedWith   Goal[]   @relation("GoalMatches")
+  
   // Relationships
   memberships   Membership[]
   chatRooms     ChatRoom[]
   
   @@index([userId])
   @@index([status])
+  @@index([category])
 }
 
 model Membership {
@@ -66,6 +80,27 @@ model Membership {
   
   @@unique([userId, goalId])
   @@index([goalId])
+}
+
+// ============================================
+// AI MATCHING MODELS
+// ============================================
+
+model MatchScore {
+  id          String   @id @default(cuid())
+  userIdOne   String
+  userIdTwo   String
+  score       Float    // 0.0 to 1.0 compatibility score
+  reason      String?  // AI-generated explanation
+  createdAt   DateTime @default(now())
+  
+  userOne     User     @relation("UserOne", fields: [userIdOne], references: [id])
+  userTwo     User     @relation("UserTwo", fields: [userIdTwo], references: [id])
+  
+  @@unique([userIdOne, userIdTwo])
+  @@index([userIdOne])
+  @@index([userIdTwo])
+  @@index([score])
 }
 
 // ============================================
@@ -163,4 +198,24 @@ model Reaction {
   
   @@unique([messageId, userId, emoji])
   @@index([messageId])
+}
+
+// ============================================
+// GOAL MATCHES (Many-to-Many)
+// ============================================
+
+model GoalMatch {
+  id        String   @id @default(cuid())
+  goalOneId String
+  goalTwoId String
+  score     Float
+  createdAt DateTime @default(now())
+  
+  goalOne   Goal     @relation("GoalMatches", fields: [goalOneId], references: [id])
+  goalTwo   Goal     @relation("GoalMatches", fields: [goalTwoId], references: [id])
+  
+  @@unique([goalOneId, goalTwoId])
+  @@index([goalOneId])
+  @@index([goalTwoId])
+  @@index([score])
 }
