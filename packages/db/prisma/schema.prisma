@@ -1,15 +1,8 @@
-// ---------------------------------------------------------------------------
-// DSK - Prisma schema (PostgreSQL)
-// Invariants encoded here:
-//  - Anonymous comments: public-facing pseudonym, backend-accountable userId.
-//  - Groups: hard max 10 members (enforced in service layer transaction;
-//    GroupMember has unique(groupId, userId) and Group.maxMembers default 10).
-//  - Provider tokens stored encrypted (AES-256-GCM at app layer).
-//  - Soft deletes via deletedAt where content is user-facing.
-// ---------------------------------------------------------------------------
+// This is your Prisma schema.
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated"
 }
 
 datasource db {
@@ -17,667 +10,157 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ----------------------------- Enums --------------------------------------
-
-enum GlobalRole {
-  USER
-  MODERATOR
-  ADMIN
-  SUPER_ADMIN
-}
-
-enum Locale {
-  EN
-  FR
-  WO // Wolof: future-ready, not exposed in UI yet
-}
-
-enum IdeaStatus {
-  DRAFT
-  PUBLISHED
-  ARCHIVED
-}
-
-enum CommentStatus {
-  VISIBLE
-  HIDDEN_BY_MODERATION
-  REMOVED
-}
-
-enum ReactionType {
-  LIKE
-  INSIGHTFUL
-  HELPFUL
-  UNHELPFUL
-}
-
-enum CollaborationRequestStatus {
-  PENDING
-  ACCEPTED
-  REJECTED
-  SAVED
-  WITHDRAWN
-}
-
-enum GroupRole {
-  OWNER
-  ADMIN
-  MEMBER
-}
-
-enum GroupMemberStatus {
-  ACTIVE
-  LEFT
-  REMOVED
-}
-
-enum NotificationType {
-  COLLAB_REQUEST_RECEIVED
-  COLLAB_REQUEST_ACCEPTED
-  COLLAB_REQUEST_REJECTED
-  GROUP_MEMBER_JOINED
-  GROUP_MESSAGE
-  COMMENT_ON_IDEA
-  REPORT_RESOLVED
-  OPPORTUNITY_MATCH
-  SYSTEM
-}
-
-enum OrganizationType {
-  STARTUP
-  ENTERPRISE
-}
-
-enum OrganizationRole {
-  OWNER
-  ADMIN
-  MEMBER
-}
-
-enum OrganizationVerification {
-  UNVERIFIED
-  PENDING
-  VERIFIED
-  REJECTED
-}
-
-enum OpportunityStatus {
-  DRAFT
-  OPEN
-  CLOSED
-  ARCHIVED
-}
-
-enum ReportTargetType {
-  IDEA
-  COMMENT
-  USER
-  GROUP
-  GROUP_MESSAGE
-  ORGANIZATION
-  OPPORTUNITY
-}
-
-enum ReportStatus {
-  OPEN
-  IN_REVIEW
-  RESOLVED
-  DISMISSED
-}
-
-enum ModerationActionType {
-  HIDE_CONTENT
-  REMOVE_CONTENT
-  RESTORE_CONTENT
-  WARN_USER
-  COOLDOWN_USER
-  BAN_USER
-  UNBAN_USER
-  VERIFY_ORGANIZATION
-  REJECT_ORGANIZATION
-}
-
-enum IntegrationProvider {
-  META_FACEBOOK_PAGE
-  META_INSTAGRAM_PROFESSIONAL
-  META_WHATSAPP_BUSINESS
-  TIKTOK
-}
-
-enum IntegrationStatus {
-  CONNECTED
-  EXPIRED
-  REVOKED
-  ERROR
-}
-
-enum SocialPostStatus {
-  DRAFT
-  QUEUED
-  PUBLISHING
-  PUBLISHED
-  FAILED
-}
-
-enum WebhookEventStatus {
-  RECEIVED
-  PROCESSING
-  PROCESSED
-  FAILED
-  IGNORED
-}
-
-// ------------------------- Auth / Identity --------------------------------
+// ============================================
+// CORE MODELS
+// ============================================
 
 model User {
-  id             String     @id @default(cuid())
-  email          String     @unique
-  emailVerified  DateTime?
-  passwordHash   String?
-  name           String?
-  image          String?
-  role           GlobalRole @default(USER)
-  bannedAt       DateTime?
-  cooldownUntil  DateTime?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-  deletedAt      DateTime?
-
-  accounts              Account[]
-  sessions              Session[]
-  profile               Profile?
-  ideas                 Idea[]
-  anonymousIdentities   AnonymousIdentity[]
-  reactions             Reaction[]
-  collaborationRequests CollaborationRequest[] @relation("Requester")
-  groupMemberships      GroupMember[]
-  groupMessages         GroupMessage[]
-  notifications         Notification[]
-  orgMemberships        OrganizationMember[]
-  reportsFiled          Report[]               @relation("Reporter")
-  moderationActions     ModerationAction[]     @relation("Moderator")
-  auditLogs             AuditLog[]             @relation("Actor")
-  integrationAccounts   IntegrationAccount[]
-  passwordResetTokens   PasswordResetToken[]
-
-  @@index([role])
+  id                String    @id @default(cuid())
+  email             String    @unique
+  name              String?
+  avatarUrl         String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  lastSeenAt        DateTime? // For online status
+  isOnline          Boolean   @default(false)
+  
+  // Relationships
+  goals             Goal[]
+  memberships       Membership[]
+  chats             ChatMember[]
+  messages          Message[]
+  notifications     Notification[]
+  sentMessages      Message[] @relation("MessageSender")
+  
+  @@index([email])
 }
 
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-  @@index([userId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
-
-model PasswordResetToken {
-  id        String   @id @default(cuid())
-  userId    String
-  tokenHash String   @unique
-  expires   DateTime
-  usedAt    DateTime?
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-// ------------------------------ Profile -----------------------------------
-
-model Profile {
-  id            String   @id @default(cuid())
-  userId        String   @unique
-  displayName   String
-  bio           String?
-  headline      String?
-  skills        String[] @default([])
-  interests     String[] @default([])
-  industries    String[] @default([])
-  locale        Locale   @default(EN)
-  country       String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-// ------------------------------- Ideas ------------------------------------
-
-model Idea {
-  id          String     @id @default(cuid())
-  ownerId     String
+model Goal {
+  id          String   @id @default(cuid())
   title       String
-  description String
-  status      IdeaStatus @default(DRAFT)
-  language    Locale     @default(EN)
-  tags        String[]   @default([])
-  publishedAt DateTime?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  deletedAt   DateTime?
-
-  owner                 User                   @relation(fields: [ownerId], references: [id])
-  comments              IdeaComment[]
-  reactions             Reaction[]
-  collaborationRequests CollaborationRequest[]
-  group                 Group?
-  anonymousIdentities   AnonymousIdentity[]
-  socialPosts           SocialPost[]
-
-  @@index([ownerId])
-  @@index([status, publishedAt])
-  @@index([language])
-}
-
-// --------------- Anonymous identity + comments (accountable) --------------
-
-// One pseudonym per (user, idea). Public API exposes ONLY displayCode.
-// userId stays server-side for moderation accountability.
-model AnonymousIdentity {
-  id          String   @id @default(cuid())
-  userId      String
-  ideaId      String
-  displayCode String   // e.g. "Anon-7F3K" - stable within one idea thread
-  createdAt   DateTime @default(now())
-
-  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  idea     Idea          @relation(fields: [ideaId], references: [id], onDelete: Cascade)
-  comments IdeaComment[]
-
-  @@unique([userId, ideaId])
-  @@unique([ideaId, displayCode])
-  @@index([userId])
-}
-
-model IdeaComment {
-  id                  String        @id @default(cuid())
-  ideaId              String
-  anonymousIdentityId String
-  body                String
-  status              CommentStatus @default(VISIBLE)
-  helpfulCount        Int           @default(0)
-  unhelpfulCount      Int           @default(0)
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
-  deletedAt           DateTime?
-
-  idea              Idea              @relation(fields: [ideaId], references: [id], onDelete: Cascade)
-  anonymousIdentity AnonymousIdentity @relation(fields: [anonymousIdentityId], references: [id])
-  reactions         Reaction[]
-
-  @@index([ideaId, status, createdAt])
-}
-
-// ------------------------------ Reactions ---------------------------------
-
-model Reaction {
-  id        String       @id @default(cuid())
-  userId    String
-  ideaId    String?
-  commentId String?
-  type      ReactionType
-  createdAt DateTime     @default(now())
-
-  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  idea    Idea?        @relation(fields: [ideaId], references: [id], onDelete: Cascade)
-  comment IdeaComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, ideaId, type])
-  @@unique([userId, commentId, type])
-  @@index([ideaId])
-  @@index([commentId])
-}
-
-// ------------------------- Collaboration ----------------------------------
-
-model CollaborationRequest {
-  id          String                     @id @default(cuid())
-  ideaId      String
-  requesterId String
-  message     String
-  skillsOffer String[]                   @default([])
-  status      CollaborationRequestStatus @default(PENDING)
-  decidedAt   DateTime?
-  createdAt   DateTime                   @default(now())
-  updatedAt   DateTime                   @updatedAt
-
-  idea      Idea @relation(fields: [ideaId], references: [id], onDelete: Cascade)
-  requester User @relation("Requester", fields: [requesterId], references: [id], onDelete: Cascade)
-
-  // Prevent duplicate requests for the same idea by the same user.
-  @@unique([ideaId, requesterId])
-  @@index([requesterId, status])
-  @@index([ideaId, status])
-}
-
-// ------------------------------- Groups -----------------------------------
-
-model Group {
-  id          String   @id @default(cuid())
-  ideaId      String   @unique
-  name        String
   description String?
-  // Hard product cap. Service layer enforces count(ACTIVE members) < maxMembers
-  // inside a serializable transaction before inserting a GroupMember.
-  maxMembers  Int      @default(10)
+  category    String?
+  status      String   @default("active") // active, completed, paused
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
-
-  idea     Idea           @relation(fields: [ideaId], references: [id])
-  members  GroupMember[]
-  messages GroupMessage[]
+  
+  // Relationships
+  memberships   Membership[]
+  chatRooms     ChatRoom[]
+  
+  @@index([userId])
+  @@index([status])
 }
 
-model GroupMember {
-  id        String            @id @default(cuid())
-  groupId   String
-  userId    String
-  role      GroupRole         @default(MEMBER)
-  status    GroupMemberStatus @default(ACTIVE)
-  joinedAt  DateTime          @default(now())
-  leftAt    DateTime?
-  // Read marker: messages created after this timestamp count as unread.
-  lastReadAt DateTime?
-
-  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([groupId, userId])
-  @@index([userId, status])
-  @@index([groupId, status])
-}
-
-model GroupMessage {
+model Membership {
   id        String   @id @default(cuid())
-  groupId   String
-  senderId  String
-  body      String
-  pinnedAt  DateTime?
-  createdAt DateTime @default(now())
-  deletedAt DateTime?
-
-  group  Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  sender User  @relation(fields: [senderId], references: [id])
-
-  @@index([groupId, createdAt])
+  userId    String
+  goalId    String
+  role      String   @default("member") // owner, member
+  joinedAt  DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id])
+  goal      Goal     @relation(fields: [goalId], references: [id])
+  
+  @@unique([userId, goalId])
+  @@index([goalId])
 }
 
-// ---------------------------- Notifications -------------------------------
+// ============================================
+// CHAT MODELS
+// ============================================
+
+model ChatRoom {
+  id          String   @id @default(cuid())
+  name        String?  // For group chats
+  type        String   @default("direct") // direct, group, goal
+  goalId      String?  // If linked to a goal
+  goal        Goal?    @relation(fields: [goalId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relationships
+  members     ChatMember[]
+  messages    Message[]
+  
+  @@index([goalId])
+  @@index([type])
+}
+
+model ChatMember {
+  id         String   @id @default(cuid())
+  chatRoomId String
+  userId     String
+  joinedAt   DateTime @default(now())
+  lastReadAt DateTime?
+  
+  chatRoom   ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([chatRoomId, userId])
+  @@index([userId])
+  @@index([chatRoomId])
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  content     String   @db.Text
+  type        String   @default("text") // text, image, file, system
+  metadata    Json?    // For file URLs, reactions, etc.
+  chatRoomId  String
+  senderId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relationships
+  chatRoom    ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+  sender      User?    @relation("MessageSender", fields: [senderId], references: [id], onDelete: SetNull)
+  
+  @@index([chatRoomId])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+// ============================================
+// NOTIFICATIONS MODEL
+// ============================================
 
 model Notification {
-  id        String           @id @default(cuid())
-  userId    String
-  type      NotificationType
-  payload   Json
-  readAt    DateTime?
-  createdAt DateTime         @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, readAt, createdAt])
-}
-
-// ---------------------------- Organizations -------------------------------
-
-model Organization {
-  id           String                   @id @default(cuid())
-  name         String
-  slug         String                   @unique
-  type         OrganizationType
-  description  String?
-  website      String?
-  verification OrganizationVerification @default(UNVERIFIED)
-  createdAt    DateTime                 @default(now())
-  updatedAt    DateTime                 @updatedAt
-  deletedAt    DateTime?
-
-  members             OrganizationMember[]
-  opportunities       Opportunity[]
-  integrationAccounts IntegrationAccount[]
-
-  @@index([type, verification])
-}
-
-model OrganizationMember {
-  id             String           @id @default(cuid())
-  organizationId String
-  userId         String
-  role           OrganizationRole @default(MEMBER)
-  createdAt      DateTime         @default(now())
-
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([organizationId, userId])
-  @@index([userId])
-}
-
-model Opportunity {
-  id             String            @id @default(cuid())
-  organizationId String
-  title          String
-  description    String
-  status         OpportunityStatus @default(DRAFT)
-  language       Locale            @default(EN)
-  skills         String[]          @default([])
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
-  deletedAt      DateTime?
-
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@index([organizationId, status])
-  @@index([status, createdAt])
-}
-
-// -------------------------- Moderation / Trust ----------------------------
-
-model Report {
-  id         String           @id @default(cuid())
-  reporterId String
-  targetType ReportTargetType
-  targetId   String
-  reason     String
-  details    String?
-  status     ReportStatus     @default(OPEN)
-  resolvedAt DateTime?
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
-
-  reporter User               @relation("Reporter", fields: [reporterId], references: [id])
-  actions  ModerationAction[]
-
-  @@index([status, createdAt])
-  @@index([targetType, targetId])
-}
-
-model ModerationAction {
-  id          String               @id @default(cuid())
-  moderatorId String
-  reportId    String?
-  targetType  ReportTargetType
-  targetId    String
-  action      ModerationActionType
-  reason      String
-  createdAt   DateTime             @default(now())
-
-  moderator User    @relation("Moderator", fields: [moderatorId], references: [id])
-  report    Report? @relation(fields: [reportId], references: [id])
-
-  @@index([targetType, targetId])
-  @@index([moderatorId, createdAt])
-}
-
-// ------------------------------ Audit logs --------------------------------
-
-model AuditLog {
-  id         String   @id @default(cuid())
-  actorId    String?
-  action     String   // e.g. "admin.user.ban", "integration.token.refresh"
-  targetType String?
-  targetId   String?
-  metadata   Json?
-  ip         String?
-  createdAt  DateTime @default(now())
-
-  actor User? @relation("Actor", fields: [actorId], references: [id])
-
-  @@index([actorId, createdAt])
-  @@index([action, createdAt])
-}
-
-// ----------------------------- Integrations -------------------------------
-
-// A connected external account. Owned by a user OR an organization.
-model IntegrationAccount {
-  id                String              @id @default(cuid())
-  provider          IntegrationProvider
-  externalAccountId String              // page id / ig business id / waba id / tiktok open id
-  displayName       String
-  ownerUserId       String?
-  organizationId    String?
-  status            IntegrationStatus   @default(CONNECTED)
-  scopes            String[]            @default([])
-  metadata          Json?
-  connectedAt       DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  revokedAt         DateTime?
-
-  ownerUser    User?         @relation(fields: [ownerUserId], references: [id])
-  organization Organization? @relation(fields: [organizationId], references: [id])
-  tokens       ProviderToken[]
-  socialPosts  SocialPost[]
-  analytics    AnalyticsSnapshot[]
-
-  @@unique([provider, externalAccountId])
-  @@index([ownerUserId])
-  @@index([organizationId])
-}
-
-// Tokens stored encrypted (AES-256-GCM with TOKEN_ENCRYPTION_KEY) at the app layer.
-model ProviderToken {
-  id                   String   @id @default(cuid())
-  integrationAccountId String
-  accessTokenEnc       String
-  refreshTokenEnc      String?
-  expiresAt            DateTime?
-  refreshExpiresAt     DateTime?
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-
-  integrationAccount IntegrationAccount @relation(fields: [integrationAccountId], references: [id], onDelete: Cascade)
-
-  @@index([integrationAccountId])
-  @@index([expiresAt])
-}
-
-// Short-lived holder for the Meta two-step connection: stores the encrypted
-// long-lived USER token while the user picks the page / IG account / WABA.
-// Rows expire after 15 minutes and are ignored once expired.
-model PendingProviderConnection {
-  id           String              @id @default(cuid())
-  userId       String
-  provider     IntegrationProvider
-  userTokenEnc String
-  expiresAt    DateTime
-  createdAt    DateTime            @default(now())
-
-  @@index([userId])
-  @@index([expiresAt])
-}
-
-model SocialPost {
-  id                   String           @id @default(cuid())
-  integrationAccountId String
-  ideaId               String?
-  content              String
-  mediaUrls            String[]         @default([])
-  status               SocialPostStatus @default(DRAFT)
-  externalPostId       String?
-  publishedAt          DateTime?
-  lastError            String?
-  attemptCount         Int              @default(0)
-  createdAt            DateTime         @default(now())
-  updatedAt            DateTime         @updatedAt
-
-  integrationAccount IntegrationAccount  @relation(fields: [integrationAccountId], references: [id], onDelete: Cascade)
-  idea               Idea?               @relation(fields: [ideaId], references: [id])
-  analytics          AnalyticsSnapshot[]
-
-  @@index([integrationAccountId, status])
-  @@index([ideaId])
-}
-
-model WebhookEvent {
-  id          String              @id @default(cuid())
-  provider    IntegrationProvider
-  eventType   String
-  externalId  String?
-  payload     Json
-  status      WebhookEventStatus  @default(RECEIVED)
-  error       String?
-  receivedAt  DateTime            @default(now())
-  processedAt DateTime?
-
-  @@index([provider, status, receivedAt])
-  @@unique([provider, externalId])
-}
-
-model AnalyticsSnapshot {
-  id                   String   @id @default(cuid())
-  integrationAccountId String
-  socialPostId         String?
-  metrics              Json     // provider-shaped metrics, normalized keys where possible
-  capturedAt           DateTime @default(now())
-
-  integrationAccount IntegrationAccount @relation(fields: [integrationAccountId], references: [id], onDelete: Cascade)
-  socialPost         SocialPost?        @relation(fields: [socialPostId], references: [id])
-
-  @@index([integrationAccountId, capturedAt])
-  @@index([socialPostId, capturedAt])
-}
-
-// ----------------------------- Feature flags ------------------------------
-
-model FeatureFlag {
   id          String   @id @default(cuid())
-  key         String   @unique
-  enabled     Boolean  @default(false)
-  description String?
+  userId      String
+  type        String   // message, goal_update, mention, system
+  title       String
+  body        String   @db.Text
+  data        Json?    // { chatRoomId, messageId, goalId, etc. }
+  read        Boolean  @default(false)
+  readAt      DateTime?
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  
+  // Relationships
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+  @@index([userId, read])
+}
+
+// ============================================
+// OPTIONAL: REACTIONS (for messages)
+// ============================================
+
+model Reaction {
+  id        String   @id @default(cuid())
+  emoji     String
+  messageId String
+  userId    String
+  createdAt DateTime @default(now())
+  
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
 }
