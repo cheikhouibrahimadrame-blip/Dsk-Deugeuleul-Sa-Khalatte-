@@ -57,10 +57,30 @@ export function IdeaDetail({ ideaId, labels }: { ideaId: string; labels: Labels 
         method: "POST",
         body: JSON.stringify({ body }),
       }),
-    onSuccess: () => {
+    onMutate: async (body) => {
+      await queryClient.cancelQueries({ queryKey: ["idea", ideaId] });
+      const previous = queryClient.getQueryData<IdeaData>(["idea", ideaId]);
+      queryClient.setQueryData<IdeaData>(["idea", ideaId], (old) => {
+        if (!old) return old;
+        const optimistic: Comment = {
+          id: `optimistic-${Date.now()}`,
+          body,
+          helpfulCount: 0,
+          unhelpfulCount: 0,
+          createdAt: new Date().toISOString(),
+          anonymousIdentity: { displayCode: "You" },
+        };
+        return { ...old, comments: [...old.comments, optimistic] };
+      });
       setCommentBody("");
-      queryClient.invalidateQueries({ queryKey: ["idea", ideaId] });
+      return { previous };
     },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["idea", ideaId], context.previous);
+      }
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["idea", ideaId] }),
   });
 
   const feedback = useMutation({
@@ -69,7 +89,32 @@ export function IdeaDetail({ ideaId, labels }: { ideaId: string; labels: Labels 
         method: "POST",
         body: JSON.stringify({ action }),
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["idea", ideaId] }),
+    onMutate: async ({ commentId, action }) => {
+      await queryClient.cancelQueries({ queryKey: ["idea", ideaId] });
+      const previous = queryClient.getQueryData<IdeaData>(["idea", ideaId]);
+      queryClient.setQueryData<IdeaData>(["idea", ideaId], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          comments: old.comments.map((c) =>
+            c.id === commentId
+              ? {
+                  ...c,
+                  helpfulCount: c.helpfulCount + (action === "HELPFUL" ? 1 : 0),
+                  unhelpfulCount: c.unhelpfulCount + (action === "UNHELPFUL" ? 1 : 0),
+                }
+              : c
+          ),
+        };
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["idea", ideaId], context.previous);
+      }
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["idea", ideaId] }),
   });
 
   const reportComment = useMutation({
@@ -80,7 +125,32 @@ export function IdeaDetail({ ideaId, labels }: { ideaId: string; labels: Labels 
       }),
   });
 
-  if (isLoading) return <p className="text-sm text-zinc-500">{labels.loading}</p>;
+  if (isLoading) {
+    return (
+      <div className="mx-auto max-w-2xl animate-pulse">
+        <div className="h-8 w-2/3 rounded bg-zinc-200 dark:bg-zinc-800" />
+        <div className="mt-3 space-y-2">
+          <div className="h-4 w-full rounded bg-zinc-100 dark:bg-zinc-800/60" />
+          <div className="h-4 w-5/6 rounded bg-zinc-100 dark:bg-zinc-800/60" />
+          <div className="h-4 w-4/6 rounded bg-zinc-100 dark:bg-zinc-800/60" />
+        </div>
+        <div className="mt-6 h-10 w-40 rounded-lg bg-zinc-200 dark:bg-zinc-800" />
+        <div className="mt-8 h-6 w-32 rounded bg-zinc-200 dark:bg-zinc-800" />
+        <div className="mt-3 flex flex-col gap-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
+              <div className="h-3 w-16 rounded bg-zinc-200 dark:bg-zinc-800" />
+              <div className="mt-2 h-4 w-full rounded bg-zinc-100 dark:bg-zinc-800/60" />
+              <div className="mt-2 flex gap-3">
+                <div className="h-3 w-16 rounded bg-zinc-100 dark:bg-zinc-800/60" />
+                <div className="h-3 w-16 rounded bg-zinc-100 dark:bg-zinc-800/60" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
   if (isError || !idea) return <p className="text-sm text-red-600">{labels.error}</p>;
 
   return (

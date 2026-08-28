@@ -56,7 +56,24 @@ export function IntegrationCards({
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["integrations"] }),
   });
 
-  if (isLoading) return <p className="text-sm text-zinc-500">{labels.loading}</p>;
+  if (isLoading) {
+    return (
+      <div className="grid gap-3 sm:grid-cols-2 animate-pulse">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+            <div className="flex items-center justify-between">
+              <div className="h-5 w-32 rounded bg-zinc-200 dark:bg-zinc-800" />
+              <div className="h-7 w-20 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+            </div>
+            <div className="mt-3 flex gap-1">
+              <div className="h-4 w-14 rounded-full bg-zinc-100 dark:bg-zinc-800/60" />
+              <div className="h-4 w-14 rounded-full bg-zinc-100 dark:bg-zinc-800/60" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
   if (isError || !data) return <p className="text-sm text-red-600">{labels.error}</p>;
 
   return (

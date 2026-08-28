@@ -33,10 +33,43 @@ export function NotificationsList({
   const markAllRead = useMutation({
     mutationFn: () =>
       apiFetch("/api/v1/notifications", { method: "POST", body: JSON.stringify({}) }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["notifications"] });
+      const previous = queryClient.getQueryData<{ items: NotificationItem[]; unreadCount: number }>(
+        ["notifications"]
+      );
+      queryClient.setQueryData<{ items: NotificationItem[]; unreadCount: number }>(
+        ["notifications"],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            unreadCount: 0,
+            items: old.items.map((item) => ({ ...item, readAt: item.readAt ?? new Date().toISOString() })),
+          };
+        }
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["notifications"], context.previous);
+      }
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
   });
 
-  if (isLoading) return <p className="text-sm text-zinc-500">{labels.loading}</p>;
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-2 animate-pulse">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
+            <div className="h-4 w-3/4 rounded bg-zinc-200 dark:bg-zinc-800" />
+          </div>
+        ))}
+      </div>
+    );
+  }
   if (isError) return <p className="text-sm text-red-600">{labels.error}</p>;
 
   if (!data || data.items.length === 0) {

@@ -23,7 +23,21 @@ export function GroupsList({ locale, labels }: { locale: string; labels: Labels 
     queryFn: () => apiFetch<{ items: GroupItem[] }>("/api/v1/groups"),
   });
 
-  if (isLoading) return <p className="text-sm text-zinc-500">{labels.loading}</p>;
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-3 animate-pulse">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+            <div className="flex items-center justify-between">
+              <div className="h-5 w-40 rounded bg-zinc-200 dark:bg-zinc-800" />
+              <div className="h-4 w-12 rounded bg-zinc-100 dark:bg-zinc-800/60" />
+            </div>
+            <div className="mt-2 h-3 w-16 rounded bg-zinc-100 dark:bg-zinc-800/60" />
+          </div>
+        ))}
+      </div>
+    );
+  }
   if (isError) return <p className="text-sm text-red-600">{labels.error}</p>;
 
   if (!data || data.items.length === 0) {

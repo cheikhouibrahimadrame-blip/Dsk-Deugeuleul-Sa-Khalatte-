@@ -27,7 +27,23 @@ export function IdeaFeed({ labels, locale }: { labels: Labels; locale: string })
     getNextPageParam: (lastPage) => lastPage.nextCursor,
   });
 
-  if (isLoading) return <p className="text-sm text-zinc-500">{labels.loading}</p>;
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-3 animate-pulse">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+            <div className="h-5 w-3/4 rounded bg-zinc-200 dark:bg-zinc-800" />
+            <div className="mt-2 h-4 w-full rounded bg-zinc-100 dark:bg-zinc-800/60" />
+            <div className="mt-1 h-4 w-5/6 rounded bg-zinc-100 dark:bg-zinc-800/60" />
+            <div className="mt-3 flex gap-4">
+              <div className="h-3 w-20 rounded bg-zinc-100 dark:bg-zinc-800/60" />
+              <div className="h-3 w-20 rounded bg-zinc-100 dark:bg-zinc-800/60" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
   if (isError) return <p className="text-sm text-red-600">{labels.error}</p>;
 
   const items = data?.pages.flatMap((p) => p.items) ?? [];

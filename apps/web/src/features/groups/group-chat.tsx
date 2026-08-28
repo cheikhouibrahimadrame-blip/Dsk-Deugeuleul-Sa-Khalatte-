@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/fetcher";
 import { useGroupSocket } from "./use-group-socket";
@@ -73,10 +73,35 @@ export function GroupChat({ groupId, labels }: { groupId: string; labels: Labels
         method: "POST",
         body: JSON.stringify({ body: text }),
       }),
-    onSuccess: () => {
+    onMutate: async (text) => {
+      await queryClient.cancelQueries({ queryKey: ["group", groupId, "messages"] });
+      const previous = queryClient.getQueryData<{ items: Message[]; nextCursor: string | null }>(
+        ["group", groupId, "messages"]
+      );
+      queryClient.setQueryData<{ items: Message[]; nextCursor: string | null }>(
+        ["group", groupId, "messages"],
+        (old) => {
+          if (!old) return old;
+          const optimistic: Message = {
+            id: `optimistic-${Date.now()}`,
+            body: text,
+            createdAt: new Date().toISOString(),
+            pinnedAt: null,
+            sender: { id: "me", name: "You" },
+          };
+          return { ...old, items: [...old.items, optimistic] };
+        }
+      );
       setBody("");
-      queryClient.invalidateQueries({ queryKey: ["group", groupId, "messages"] });
+      return { previous };
     },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["group", groupId, "messages"], context.previous);
+      }
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: ["group", groupId, "messages"] }),
   });
 
   const messageCount = messagesData?.items.length ?? 0;
@@ -95,11 +120,37 @@ export function GroupChat({ groupId, labels }: { groupId: string; labels: Labels
       });
   }, [groupId, messageCount, queryClient]);
 
-  if (isLoading) return <p className="text-sm text-zinc-500">{labels.loading}</p>;
+  if (isLoading) {
+    return (
+      <div className="mx-auto flex h-[calc(100vh-8rem)] max-w-2xl flex-col animate-pulse">
+        <div className="border-b border-zinc-200 pb-3 dark:border-zinc-800">
+          <div className="h-6 w-48 rounded bg-zinc-200 dark:bg-zinc-800" />
+          <div className="mt-2 h-3 w-64 rounded bg-zinc-100 dark:bg-zinc-800/60" />
+        </div>
+        <div className="flex-1 py-3">
+          <div className="flex flex-col gap-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="rounded-lg bg-zinc-100 p-3 dark:bg-zinc-900">
+                <div className="h-3 w-20 rounded bg-zinc-200 dark:bg-zinc-800" />
+                <div className="mt-2 h-4 w-3/4 rounded bg-zinc-200 dark:bg-zinc-800" />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="flex gap-2 border-t border-zinc-200 pt-3 dark:border-zinc-800">
+          <div className="h-10 flex-1 rounded-full bg-zinc-100 dark:bg-zinc-800" />
+          <div className="h-10 w-20 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+        </div>
+      </div>
+    );
+  }
   if (isError || !group) return <p className="text-sm text-red-600">{labels.error}</p>;
 
   const isFull = group.members.length >= group.maxMembers;
-  const pinnedMessage = messagesData?.items.filter((m) => m.pinnedAt).at(-1);
+  const pinnedMessage = useMemo(
+    () => messagesData?.items.filter((m) => m.pinnedAt).at(-1),
+    [messagesData]
+  );
 
   const handleBodyChange = (value: string) => {
     setBody(value);

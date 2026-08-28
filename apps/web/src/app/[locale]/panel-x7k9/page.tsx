@@ -1,11 +1,41 @@
+import { unstable_cache } from "next/cache";
 import { prisma } from "@dsk/db";
+
+/**
+ * Cache admin dashboard counts for 30 seconds so repeat visits and
+ * navigations within the panel don't re-run 7 DB queries each time.
+ */
+const getAdminCounts = unstable_cache(
+  async () => {
+    const [
+      users,
+      ideas,
+      openReports,
+      groups,
+      pendingOrgs,
+      erroredIntegrations,
+      failedWebhooks,
+    ] = await Promise.all([
+      prisma.user.count({ where: { deletedAt: null } }),
+      prisma.idea.count({ where: { deletedAt: null } }),
+      prisma.report.count({ where: { status: "OPEN" } }),
+      prisma.group.count({ where: { deletedAt: null } }),
+      prisma.organization.count({ where: { verification: "PENDING", deletedAt: null } }),
+      prisma.integrationAccount.count({ where: { status: { in: ["EXPIRED", "ERROR"] } } }),
+      prisma.webhookEvent.count({ where: { status: "FAILED" } }),
+    ]);
+    return { users, ideas, openReports, groups, pendingOrgs, erroredIntegrations, failedWebhooks };
+  },
+  ["admin-dashboard-counts"],
+  { revalidate: 30 }
+);
 
 /**
  * Admin overview. Server-rendered behind the hidden layout guard; counts are
  * read directly (admin surfaces may bypass the public API layer).
  */
 export default async function AdminDashboardPage() {
-  const [
+  const {
     users,
     ideas,
     openReports,
@@ -13,15 +43,7 @@ export default async function AdminDashboardPage() {
     pendingOrgs,
     erroredIntegrations,
     failedWebhooks,
-  ] = await Promise.all([
-    prisma.user.count({ where: { deletedAt: null } }),
-    prisma.idea.count({ where: { deletedAt: null } }),
-    prisma.report.count({ where: { status: "OPEN" } }),
-    prisma.group.count({ where: { deletedAt: null } }),
-    prisma.organization.count({ where: { verification: "PENDING", deletedAt: null } }),
-    prisma.integrationAccount.count({ where: { status: { in: ["EXPIRED", "ERROR"] } } }),
-    prisma.webhookEvent.count({ where: { status: "FAILED" } }),
-  ]);
+  } = await getAdminCounts();
 
   const cards = [
     { label: "Users", value: users },

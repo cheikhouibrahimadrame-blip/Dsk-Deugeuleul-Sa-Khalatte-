@@ -91,7 +91,20 @@ export function CollabInbox({ locale, labels }: { locale: string; labels: Labels
       </div>
 
       {actionError && <p className="mb-3 text-sm text-red-600">{actionError}</p>}
-      {isLoading && <p className="text-sm text-zinc-500">{labels.loading}</p>}
+      {isLoading && (
+        <div className="flex flex-col gap-3 animate-pulse">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+              <div className="flex items-center justify-between">
+                <div className="h-5 w-48 rounded bg-zinc-200 dark:bg-zinc-800" />
+                <div className="h-5 w-16 rounded-full bg-zinc-100 dark:bg-zinc-800/60" />
+              </div>
+              <div className="mt-2 h-3 w-32 rounded bg-zinc-100 dark:bg-zinc-800/60" />
+              <div className="mt-2 h-4 w-full rounded bg-zinc-100 dark:bg-zinc-800/60" />
+            </div>
+          ))}
+        </div>
+      )}
       {isError && <p className="text-sm text-red-600">{labels.error}</p>}
 
       {data && data.items.length === 0 && (
